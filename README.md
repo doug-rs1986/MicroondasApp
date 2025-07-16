@@ -1,66 +1,158 @@
 # MicroondasApp
 
-Projeto ASP.NET 8 para simulaÁ„o de funcionamento de um microondas, com programas prÈ-definidos, cadastro de programas customizados, controle de aquecimento, pausa, continuaÁ„o, cancelamento e documentaÁ„o autom·tica via Swagger.
+Projeto ASP.NET 8 para simula√ß√£o de funcionamento de um microondas, com programas pr√©-definidos, cadastro de programas customizados, controle de aquecimento, sistema de autentica√ß√£o JWT, pausa, continua√ß√£o, cancelamento e documenta√ß√£o autom√°tica via Swagger.
 
-## Vis„o Geral
+## Vis√£o Geral
 
-O MicroondasApp foi desenvolvido para simular as principais funÁıes de um microondas moderno, incluindo:
+O MicroondasApp foi desenvolvido para simular as principais fun√ß√µes de um microondas moderno, incluindo:
 
-- Programas de aquecimento prÈ-definidos e customizados
-- Controle de tempo, potÍncia e caractere de aquecimento
-- PersistÍncia de programas customizados em arquivo JSON
-- Tratamento global de exceÁıes e logging
-- API documentada automaticamente via Swagger
+- **Sistema de autentica√ß√£o JWT** com registro e login de usu√°rios
+- **Programas de aquecimento** pr√©-definidos (Pipoca, Leite, Carnes de boi, Frango, Feij√£o) e customizados
+- **Controle completo de aquecimento** com tempo (1-120s), pot√™ncia (1-10) e caractere personalizado
+- **Funcionalidades avan√ßadas**: pausa, continua√ß√£o, cancelamento e in√≠cio r√°pido
+- **Persist√™ncia em JSON** para programas customizados e usu√°rios
+- **Sistema robusto de logging** com tratamento global de exce√ß√µes
+- **API documentada** automaticamente via Swagger
 
 ## Estrutura do Projeto
 
-- **Controllers/MicroondasController.cs**: Controller principal da API, respons·vel pelos endpoints de programas, aquecimento, pausa, continuaÁ„o e cadastro de programas customizados.
-- **Application/MicroondasService.cs**: ServiÁo central que executa a lÛgica de aquecimento, validaÁıes e manipulaÁ„o dos programas.
-- **Domain/Aquecimento.cs**: Classe que representa o aquecimento, com regras de negÛcio para tempo e potÍncia.
-- **Domain/RegrasDeNegocioException.cs**: Exception especÌfica para regras de negÛcio do microondas.
-- **programas_customizados.json**: Arquivo de persistÍncia dos programas customizados.
-- **Program.cs**: ConfiguraÁ„o do pipeline, middleware de tratamento de exceÁıes, Swagger e inicializaÁ„o da aplicaÁ„o.
+### Controllers
+- **Controllers/MicroondasController.cs**: Endpoints principais para gerenciamento de programas e opera√ß√µes do microondas
+- **Controllers/AuthController.cs**: Endpoints de autentica√ß√£o (registro, login e status)
 
-## Escolhas TÈcnicas
+### Application Layer
+- **Application/MicroondasService.cs**: L√≥gica central de aquecimento e valida√ß√µes de neg√≥cio
+- **Application/MicroondasStateService.cs**: Gerenciamento de estado do microondas (pausado, em aquecimento, etc.)
+- **Application/UsuarioService.cs**: Gerenciamento de usu√°rios com hash de senhas SHA256
+- **Application/ErrorLogService.cs**: Servi√ßo de logging para opera√ß√µes e login
 
-- **.NET 8 e C# 12**: UtilizaÁ„o das versıes mais recentes para melhor performance e recursos modernos.
-- **Middleware de Exception**: Tratamento global de erros, resposta padronizada e logging detalhado em arquivo para facilitar manutenÁ„o e auditoria.
-- **PersistÍncia em JSON**: Simples, eficiente e suficiente para o escopo do projeto, sem necessidade de banco de dados.
-- **Swagger**: DocumentaÁ„o autom·tica e interativa, facilitando testes e integraÁ„o.
-- **ValidaÁ„o de regras de negÛcio**: Centralizada na classe de serviÁo e exception especÌfica, garantindo consistÍncia.
+### Domain Layer
+- **Domain/Aquecimento.cs**: Entidade com regras de neg√≥cio para tempo e pot√™ncia
+- **Domain/RegrasDeNegocioException.cs**: Exception espec√≠fica para viola√ß√µes de regras de neg√≥cio
+
+### Infrastructure
+- **Middleware/ExceptionMiddleware.cs**: Middleware para tratamento global de exce√ß√µes
+- **Program.cs**: Configura√ß√£o da aplica√ß√£o, servi√ßos, JWT e pipeline de middleware
+
+### Persist√™ncia
+- **programas_customizados.json**: Programas criados pelos usu√°rios
+- **usuarios.json**: Base de usu√°rios com senhas criptografadas
+- **Logs**: Arquivos de log para opera√ß√µes e tentativas de login
+
+## Recursos T√©cnicos
+
+- **.NET 8 e C# 12**: Vers√µes mais recentes para performance e recursos modernos
+- **Autentica√ß√£o JWT**: Tokens seguros com expira√ß√£o de 2 horas
+- **Middleware de Exception**: Tratamento global com respostas padronizadas e logging detalhado
+- **Persist√™ncia JSON**: Solu√ß√£o simples e eficiente para o escopo do projeto
+- **Swagger/OpenAPI**: Documenta√ß√£o interativa autom√°tica
+- **Criptografia SHA256**: Senhas armazenadas com hash seguro
+- **Valida√ß√£o rigorosa**: Regras de neg√≥cio centralizadas com exception espec√≠fica
 
 ## Endpoints da API
 
-### Programas
+### Autentica√ß√£o (`/auth`)
 
-- `GET /microondas` ó Lista todos os programas (prÈ-definidos e customizados, customizados marcados com `Customizado: true`).
-- `POST /microondas/cadastrar` ó Cadastra um programa customizado. Campos obrigatÛrios: nome, alimento, tempo, potÍncia, caractere. InstruÁıes s„o opcionais. Caractere n„o pode repetir nem ser ".".
+- `POST /auth/register` ‚Äî Registra novo usu√°rio (nome, username, senha)
+- `POST /auth/login` ‚Äî Autentica usu√°rio e retorna token JWT
+- `GET /auth/status` ‚Äî Verifica status de autentica√ß√£o
 
-### Aquecimento
+### Programas (`/microondas`)
 
-- `POST /microondas/iniciar/{nome}` ó Inicia aquecimento por nome de programa prÈ-definido.
-- `POST /microondas/inicio-rapido` ó Inicia aquecimento r·pido (30s, potÍncia 10, caractere ".").
-- `POST /microondas/pausar` ó Pausa o aquecimento. Se j· estiver pausado, cancela.
-- `POST /microondas/continuar` ó Continua aquecimento pausado, mantendo tempo e potÍncia restantes.
+- `GET /microondas` ‚Äî Lista todos os programas dispon√≠veis
+- `POST /microondas/cadastrar` ‚Äî Cadastra programa customizado
+- `PUT /microondas/editar/{id}` ‚Äî Edita programa customizado existente
 
-## Tratamento de Erros
+### Opera√ß√µes de Aquecimento
 
-- Respostas de erro s„o padronizadas em JSON.
-- Erros de regras de negÛcio retornam status 400 e mensagem especÌfica.
-- Erros inesperados retornam status 500 e s„o logados em `exceptions.log` com detalhes completos.
+- `POST /microondas/iniciar/{nome}` ‚Äî Inicia aquecimento por programa pr√©-definido
+- `POST /microondas/inicio-rapido` ‚Äî In√≠cio r√°pido (30s, pot√™ncia 10)
+- `POST /microondas/pausar` ‚Äî Pausa aquecimento (ou cancela se j√° pausado)
+- `POST /microondas/continuar` ‚Äî Retoma aquecimento pausado
 
-## Como Rodar
+## Programas Pr√©-definidos
 
-1. Instale o .NET 8 SDK.
-2. Execute o projeto pelo Visual Studio ou via terminal: ```sh dotnet run ```
-3. Acesse [http://localhost:5263](http://localhost:5263) para visualizar o Swagger e testar os endpoints.
+| Programa | Alimento | Tempo | Pot√™ncia | Caractere | Instru√ß√µes Especiais |
+|----------|----------|-------|----------|-----------|---------------------|
+| **Pipoca** | Pipoca de microondas | 3 min | 7 | `*` | Observar intervalos entre estouros |
+| **Leite** | Leite | 5 min | 5 | `#` | Cuidado com choque t√©rmico |
+| **Carnes de boi** | Carne em peda√ßos | 14 min | 4 | `~` | Virar na metade do processo |
+| **Frango** | Frango (qualquer corte) | 8 min | 7 | `@` | Virar na metade do processo |
+| **Feij√£o** | Feij√£o congelado | 8 min | 9 | `+` | Manter destampado |
 
-## ObservaÁıes
+## Regras de Neg√≥cio
 
-- Programas customizados s„o persistidos em `programas_customizados.json` no diretÛrio do projeto.
-- O projeto est· configurado para ambiente de desenvolvimento por padr„o.
-- O Swagger È exibido automaticamente ao iniciar o projeto.
+- **Tempo**: Entre 1 e 120 segundos
+- **Pot√™ncia**: Entre 1 e 10
+- **Caractere personalizado**: √önico, n√£o pode ser "." (reservado para in√≠cio r√°pido)
+- **Autentica√ß√£o**: Obrigat√≥ria para todas as opera√ß√µes
+- **Estado do microondas**: Controlado para permitir pausa/continua√ß√£o
+
+## Tratamento de Erros e Logging
+
+- **Respostas padronizadas**: JSON com sucesso, mensagem, tipo e caminho
+- **Status codes apropriados**: 400 para regras de neg√≥cio, 401 para autentica√ß√£o, 500 para erros inesperados
+- **Logging segregado**: Arquivos separados para opera√ß√µes do microondas e tentativas de login
+- **Informa√ß√µes detalhadas**: StackTrace e InnerException para debugging
+
+## Configura√ß√£o e Execu√ß√£o
+
+### Pr√©-requisitos
+- .NET 8 SDK instalado
+- Visual Studio 2022 ou VS Code (opcional)
+
+### Configura√ß√£o JWT
+Configure as chaves JWT no `appsettings.json`:
+```json
+{
+  "Jwt": {
+    "Key": "sua-chave-secreta-aqui-minimo-32-caracteres",
+    "Issuer": "MicroondasApp",
+    "Audience": "MicroondasApp-Users"
+  }
+}
+```
+
+### Executando o Projeto
+```bash
+# Clone o reposit√≥rio
+git clone <url-do-repositorio>
+cd MicroondasApp
+
+# Execute o projeto
+dotnet run
+
+# Ou usando Visual Studio
+# Pressione F5 ou Ctrl+F5
+```
+
+### Acessando a API
+- **Swagger UI**: [http://localhost:5263](http://localhost:5263)
+- **API Base**: [http://localhost:5263/api](http://localhost:5263/api)
+
+## Fluxo de Uso
+
+1. **Registrar usu√°rio**: `POST /auth/register`
+2. **Fazer login**: `POST /auth/login` ‚Üí receber token JWT
+3. **Incluir token**: Adicionar `Authorization: Bearer <token>` nos headers
+4. **Usar microondas**: Listar programas, cadastrar novos, iniciar aquecimento, etc.
+
+## Arquivos Gerados
+
+Durante a execu√ß√£o, a aplica√ß√£o criar√° automaticamente:
+- `usuarios.json` ‚Äî Base de usu√°rios registrados
+- `programas_customizados.json` ‚Äî Programas criados pelos usu√°rios
+- `operations.log` ‚Äî Log de opera√ß√µes do microondas
+- `login.log` ‚Äî Log de tentativas de autentica√ß√£o
+
+## Observa√ß√µes de Desenvolvimento
+
+- Projeto configurado para ambiente de desenvolvimento por padr√£o
+- Swagger habilitado automaticamente
+- Assembly info desabilitado para evitar conflitos
+- Logs detalhados para facilitar debugging e auditoria
+- Arquitetura em camadas para facilitar manuten√ß√£o e testes
 
 ---
 
-Este projeto foi estruturado para ser did·tico, extensÌvel e f·cil de testar, com foco em boas pr·ticas de API REST, tratamento de erros e documentaÁ„o.
+Este projeto demonstra boas pr√°ticas de desenvolvimento de APIs REST com .NET 8, incluindo autentica√ß√£o JWT, tratamento de erros, logging, valida√ß√£o de regras de neg√≥cio e documenta√ß√£o autom√°tica.
