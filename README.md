@@ -17,7 +17,7 @@ O MicroondasApp foi desenvolvido para simular as principais funções de um microo
 - **Controllers/MicroondasController.cs**: Controller principal da API, responsável pelos endpoints de programas, aquecimento, pausa, continuação e cadastro de programas customizados.
 - **Application/MicroondasService.cs**: Serviço central que executa a lógica de aquecimento, validações e manipulação dos programas.
 - **Domain/Aquecimento.cs**: Classe que representa o aquecimento, com regras de negócio para tempo e potência.
-- **Domain/RegrasDeNegocioException.cs**: Exception específica para regras de negócio do micro-ondas.
+- **Domain/RegrasDeNegocioException.cs**: Exception específica para regras de negócio do microondas.
 - **programas_customizados.json**: Arquivo de persistência dos programas customizados.
 - **Program.cs**: Configuração do pipeline, middleware de tratamento de exceções, Swagger e inicialização da aplicação.
 
