@@ -25,11 +25,11 @@ namespace MicroondasApp.Controllers
         [HttpPost("register")]
         public ActionResult Register([FromBody] RegisterRequest req)
         {
-            if (string.IsNullOrWhiteSpace(req.Nome) || string.IsNullOrWhiteSpace(req.Username) || string.IsNullOrWhiteSpace(req.Senha))
-                return BadRequest("Nome, username e senha são obrigatórios.");
+            if (string.IsNullOrWhiteSpace(req.Nome) || string.IsNullOrWhiteSpace(req.Senha))
+                return BadRequest("Nome e senha são obrigatórios.");
             try
             {
-                _usuarioService.Criar(req.Nome, req.Username, req.Senha);
+                _usuarioService.Criar(req.Nome, req.Senha);
                 return Ok("Usuário cadastrado com sucesso.");
             }
             catch (Exception ex)
@@ -51,24 +51,21 @@ namespace MicroondasApp.Controllers
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(req.Username) || string.IsNullOrWhiteSpace(req.Senha))
-                    return BadRequest("Username e senha são obrigatórios.");
-
-                if (!_usuarioService.ValidarSenha(req.Username, req.Senha))
+                if (!_usuarioService.ValidarSenha(req.Nome, req.Senha))
                 {
                     _errorLogService.Registrar(new MicroondasApp.Application.ErrorLogEntry {
                         Data = DateTime.Now,
-                        Mensagem = "Username ou senha inválidos.",
+                        Mensagem = "Usuário ou senha inválidos.",
                         Tipo = "LoginError",
                         Caminho = "auth/login"
                     }, ErrorLogService.LogFileLogin);
-                    return Unauthorized("Username ou senha inválidos.");
+                    return Unauthorized("Usuário ou senha inválidos.");
                 }
-                var usuario = _usuarioService.ObterPorUsername(req.Username);
+                var usuario = _usuarioService.ObterPorNome(req.Nome);
                 var claims = new[]
                 {
                     new Claim(JwtRegisteredClaimNames.Sub, usuario!.Id.ToString()),
-                    new Claim(JwtRegisteredClaimNames.UniqueName, usuario.Username)
+                    new Claim(JwtRegisteredClaimNames.UniqueName, usuario.Nome)
                 };
                 var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
                 var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -121,18 +118,17 @@ namespace MicroondasApp.Controllers
                     InnerException = ex.InnerException?.ToString()
                 }, ErrorLogService.LogFileLogin);
                 return StatusCode(500, "Erro inesperado ao verificar status de autenticação.");
-            }   
+            }
         }
 
         public class RegisterRequest
         {
             public string Nome { get; set; } = string.Empty;
-            public string Username { get; set; } = string.Empty;
             public string Senha { get; set; } = string.Empty;
         }
         public class LoginRequest
         {
-            public string Username { get; set; } = string.Empty;
+            public string Nome { get; set; } = string.Empty;
             public string Senha { get; set; } = string.Empty;
         }
     }
