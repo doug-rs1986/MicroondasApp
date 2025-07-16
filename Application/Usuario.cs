@@ -6,6 +6,7 @@ namespace MicroondasApp.Application
     {
         public int Id { get; set; }
         public string Nome { get; set; } = string.Empty;
+        public string Username { get; set; } = string.Empty; // Único
         [JsonIgnore]
         public string Senha { get; set; } = string.Empty; // Armazenada já criptografada SHA256
     }

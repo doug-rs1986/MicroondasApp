@@ -41,13 +41,21 @@ namespace MicroondasApp.Application
 
         public bool NomeExiste(string nome) => Listar().Any(u => u.Nome.Equals(nome, StringComparison.OrdinalIgnoreCase));
 
-        public Usuario Criar(string nome, string senha)
+        public Usuario? ObterPorUsername(string username)
         {
-            if (NomeExiste(nome)) throw new Exception("Nome de usuário já existe.");
+            return Listar().FirstOrDefault(u => u.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
+        }
+
+        public bool UsernameExiste(string username) => Listar().Any(u => u.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
+
+        public Usuario Criar(string nome, string username, string senha)
+        {
+            if (UsernameExiste(username)) throw new Exception("Username já existe.");
             var usuario = new Usuario
             {
                 Id = Listar().Count > 0 ? Listar().Max(u => u.Id) + 1 : 1,
                 Nome = nome,
+                Username = username,
                 Senha = HashSenha(senha)
             };
             _usuarios!.Add(usuario);
@@ -55,9 +63,9 @@ namespace MicroondasApp.Application
             return usuario;
         }
 
-        public bool ValidarSenha(string nome, string senha)
+        public bool ValidarSenha(string username, string senha)
         {
-            var usuario = ObterPorNome(nome);
+            var usuario = ObterPorUsername(username);
             if (usuario == null) return false;
             return usuario.Senha == HashSenha(senha);
         }
