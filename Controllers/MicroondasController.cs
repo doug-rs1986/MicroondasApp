@@ -1,8 +1,10 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroondasApp.Application;
 
 namespace MicroondasApp.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class MicroondasController : ControllerBase
@@ -151,6 +153,34 @@ namespace MicroondasApp.Controllers
 
             ProgramasCustomizados.Adicionar(programa);
             return Ok("Programa customizado cadastrado com sucesso.");
+        }
+
+        [HttpPut("editar/{id:int}")]
+        public ActionResult EditarPrograma(int id, [FromBody] ProgramaCustomizado programa)
+        {
+            var customizados = ProgramasCustomizados.Lista;
+            if (id < 1 || id > customizados.Count)
+                return NotFound("Programa customizado não encontrado.");
+            var existente = customizados[id - 1];
+            existente.Nome = programa.Nome;
+            existente.Alimento = programa.Alimento;
+            existente.TempoSegundos = programa.TempoSegundos;
+            existente.Potencia = programa.Potencia;
+            existente.StringPersonalizada = programa.StringPersonalizada;
+            existente.Instrucoes = programa.Instrucoes;
+            ProgramasCustomizados.Salvar();
+            return Ok("Programa customizado editado com sucesso.");
+        }
+
+        [HttpDelete("remover/{id:int}")]
+        public ActionResult RemoverPrograma(int id)
+        {
+            var customizados = ProgramasCustomizados.Lista;
+            if (id < 1 || id > customizados.Count)
+                return NotFound("Programa customizado não encontrado.");
+            customizados.RemoveAt(id - 1);
+            ProgramasCustomizados.Salvar();
+            return Ok("Programa customizado removido com sucesso.");
         }
 
         public class IniciarRequest
