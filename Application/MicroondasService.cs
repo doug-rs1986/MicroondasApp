@@ -5,7 +5,7 @@ using MicroondasApp.Domain;
 namespace MicroondasApp.Application
 {
     /// <summary>
-    /// Serviço para simular o funcionamento do micro-ondas.
+    /// Serviço para simular o funcionamento do microondas.
     /// </summary>
     public class MicroondasService
     {
@@ -60,7 +60,7 @@ namespace MicroondasApp.Application
         {
             new ProgramaPreDefinido {
                 Nome = "Pipoca",
-                Alimento = "Pipoca (de micro-ondas)",
+                Alimento = "Pipoca (de microondas)",
                 TempoSegundos = 180, // 3 minutos
                 Potencia = 7,
                 StringPersonalizada = "*",
