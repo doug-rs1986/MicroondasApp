@@ -1,8 +1,10 @@
-using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MicroondasApp.Domain;
 using MicroondasApp.Application;
-using System.Text.Json;
+using MicroondasApp.Middleware;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,49 +16,35 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Microondas API", Version = "v1" });
 });
 
-// Registro dos serviços no DI
+// JWT config
+builder.Services.AddSingleton<UsuarioService>();
 builder.Services.AddSingleton<MicroondasStateService>();
 builder.Services.AddSingleton<ErrorLogService>();
 builder.Services.AddTransient<MicroondasService>();
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+        };
+    });
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
+app.UseExceptionMiddleware();
 app.MapControllers();
-
-app.UseExceptionHandler(errorApp =>
-{
-    errorApp.Run(async context =>
-    {
-        context.Response.ContentType = "application/json";
-        var exceptionHandlerPathFeature = context.Features.Get<IExceptionHandlerPathFeature>();
-        var ex = exceptionHandlerPathFeature?.Error;
-        var response = new {
-            Sucesso = false,
-            Mensagem = ex is RegrasDeNegocioException ? ex.Message : "Ocorreu um erro inesperado.",
-            Tipo = ex?.GetType().Name,
-            Caminho = exceptionHandlerPathFeature?.Path
-        };
-        // Log de exceptions não tratadas
-        if (ex is not RegrasDeNegocioException)
-        {
-            var logEntry = new MicroondasApp.Application.ErrorLogEntry {
-                Data = DateTime.Now,
-                Mensagem = ex?.Message,
-                Tipo = ex?.GetType().Name,
-                Caminho = exceptionHandlerPathFeature?.Path,
-                StackTrace = ex?.StackTrace,
-                InnerException = ex?.InnerException?.ToString()
-            };
-            var logService = context.RequestServices.GetRequiredService<ErrorLogService>();
-            logService.Registrar(logEntry);
-        }
-        context.Response.StatusCode = ex is RegrasDeNegocioException ? 400 : 500;
-        await context.Response.WriteAsync(JsonSerializer.Serialize(response));
-    });
-});
 
 app.UseSwagger();
 app.UseSwaggerUI(c =>
@@ -66,13 +54,3 @@ app.UseSwaggerUI(c =>
 });
 
 app.Run();
-
-public class ErrorLogEntry
-{
-    public DateTime Data { get; set; }
-    public string? Mensagem { get; set; }
-    public string? Tipo { get; set; }
-    public string? Caminho { get; set; }
-    public string? StackTrace { get; set; }
-    public string? InnerException { get; set; }
-}
