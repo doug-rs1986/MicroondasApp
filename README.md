@@ -52,23 +52,79 @@ O MicroondasApp foi desenvolvido para simular as principais funções de um micr
 ## Endpoints da API
 
 ### Autenticação (`/auth`)
+> **Nota**: Todos os endpoints do microondas requerem autenticação JWT
 
 - `POST /auth/register` — Registra novo usuário (nome, username, senha)
 - `POST /auth/login` — Autentica usuário e retorna token JWT
 - `GET /auth/status` — Verifica status de autenticação
 
-### Programas (`/microondas`)
+### Gerenciamento de Programas (`/microondas`)
 
-- `GET /microondas` — Lista todos os programas disponíveis
-- `POST /microondas/cadastrar` — Cadastra programa customizado
+#### Consulta de Programas
+- `GET /microondas` — Lista todos os programas (pré-definidos e customizados)
+  - Retorna programas com IDs sequenciais
+  - Programas customizados marcados com `Customizado: true`
+
+#### Programas Customizados
+- `POST /microondas/cadastrar` — Cadastra novo programa customizado
+  ```json
+  {
+    "nome": "string",
+    "alimento": "string", 
+    "tempoSegundos": 1-120,
+    "potencia": 1-10,
+    "stringPersonalizada": "char único",
+    "instrucoes": "string (opcional)"
+  }
+  ```
+
 - `PUT /microondas/editar/{id}` — Edita programa customizado existente
+  - `id`: ID do programa customizado (baseado na posição na lista)
+  - Body: Mesmo formato do cadastro
 
-### Operações de Aquecimento
+- `DELETE /microondas/remover/{id}` — Remove programa customizado
+  - `id`: ID do programa customizado
 
-- `POST /microondas/iniciar/{nome}` — Inicia aquecimento por programa pré-definido
-- `POST /microondas/inicio-rapido` — Início rápido (30s, potência 10)
-- `POST /microondas/pausar` — Pausa aquecimento (ou cancela se já pausado)
+### Operações de Aquecimento (`/microondas`)
+
+#### Iniciar Aquecimento
+- `POST /microondas/iniciar` — Inicia aquecimento (múltiplos modos)
+  
+  **Modo 1: Por programa (ID)**
+  ```json
+  {
+    "id": 1
+  }
+  ```
+  
+  **Modo 2: Manual (tempo + potência)**
+  ```json
+  {
+    "tempoSegundos": 60,
+    "potencia": 8
+  }
+  ```
+  
+  **Modo 3: Só tempo (potência padrão 10)**
+  ```json
+  {
+    "tempoSegundos": 30
+  }
+  ```
+  
+  **Modo 4: Início rápido (30s, potência 10)**
+  ```json
+  {}
+  ```
+
+#### Controle de Estado
+- `POST /microondas/pausar` — Pausa aquecimento atual
+  - Se já pausado, **cancela** o aquecimento
+  - Retorna status da operação
+
 - `POST /microondas/continuar` — Retoma aquecimento pausado
+  - Mantém tempo restante e configurações originais
+  - Só funciona se houver aquecimento pausado
 
 ## Programas Pré-definidos
 
@@ -82,11 +138,26 @@ O MicroondasApp foi desenvolvido para simular as principais funções de um micr
 
 ## Regras de Negócio
 
+### Validações de Entrada
 - **Tempo**: Entre 1 e 120 segundos
 - **Potência**: Entre 1 e 10
 - **Caractere personalizado**: Único, não pode ser "." (reservado para início rápido)
-- **Autenticação**: Obrigatória para todas as operações
-- **Estado do microondas**: Controlado para permitir pausa/continuação
+- **Autenticação**: Obrigatória para todas as operações do microondas
+
+### Sistema de IDs
+- **Programas pré-definidos**: IDs 1-5 (Pipoca, Leite, Carnes de boi, Frango, Feijão)
+- **Programas customizados**: IDs sequenciais após os pré-definidos (6+)
+- **Exclusão**: Apenas programas customizados podem ser editados/removidos
+
+### Estado do Microondas
+- **Controle de estado**: Sistema previne operações conflitantes
+- **Pausa/Continuação**: Preserva configurações originais (tempo, potência, caractere)
+- **Cancelamento**: Pausa dupla cancela o aquecimento completamente
+
+### Validações Especiais
+- **Potência sem tempo**: Retorna erro explicativo
+- **Caractere duplicado**: Verifica contra todos os programas existentes
+- **Programas inexistentes**: Validação de ID antes da execução
 
 ## Tratamento de Erros e Logging
 
@@ -130,12 +201,22 @@ dotnet run
 - **Swagger UI**: [http://localhost:5263](http://localhost:5263)
 - **API Base**: [http://localhost:5263/api](http://localhost:5263/api)
 
-## Fluxo de Uso
+## Fluxo de Uso Recomendado
 
-1. **Registrar usuário**: `POST /auth/register`
+### Primeira Utilização
+1. **Registrar usuário**: `POST /auth/register` com nome, username e senha
 2. **Fazer login**: `POST /auth/login` → receber token JWT
-3. **Incluir token**: Adicionar `Authorization: Bearer <token>` nos headers
-4. **Usar microondas**: Listar programas, cadastrar novos, iniciar aquecimento, etc.
+3. **Configurar headers**: Incluir `Authorization: Bearer <token>` em todas as requisições
+
+### Operações Básicas
+4. **Explorar programas**: `GET /microondas` para ver programas disponíveis
+5. **Usar programa existente**: `POST /microondas/iniciar` com ID do programa
+6. **Controlar aquecimento**: Use `/pausar` e `/continuar` conforme necessário
+
+### Personalização
+7. **Criar programa customizado**: `POST /microondas/cadastrar` com suas configurações
+8. **Gerenciar programas**: Use `/editar/{id}` ou `/remover/{id}` para programas customizados
+9. **Testar programa**: Use o novo programa através do ID retornado
 
 ## Arquivos Gerados
 
@@ -152,6 +233,67 @@ Durante a execução, a aplicação criará automaticamente:
 - Assembly info desabilitado para evitar conflitos
 - Logs detalhados para facilitar debugging e auditoria
 - Arquitetura em camadas para facilitar manutenção e testes
+
+## Exemplos de Uso
+
+### 1. Fluxo Completo de Autenticação
+```bash
+# Registrar usuário
+curl -X POST "http://localhost:5263/auth/register" \
+  -H "Content-Type: application/json" \
+  -d '{"nome":"João","username":"joao123","senha":"minhasenha"}'
+
+# Fazer login e obter token
+curl -X POST "http://localhost:5263/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"joao123","senha":"minhasenha"}'
+
+# Usar token nas próximas requisições
+TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+### 2. Gerenciamento de Programas
+```bash
+# Listar todos os programas
+curl -X GET "http://localhost:5263/microondas" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Cadastrar programa customizado
+curl -X POST "http://localhost:5263/microondas/cadastrar" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nome": "Café",
+    "alimento": "Café requentado", 
+    "tempoSegundos": 90,
+    "potencia": 6,
+    "stringPersonalizada": "☕",
+    "instrucoes": "Mexer após aquecimento"
+  }'
+```
+
+### 3. Operações de Aquecimento
+```bash
+# Usar programa pré-definido (Pipoca = ID 1)
+curl -X POST "http://localhost:5263/microondas/iniciar" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"id": 1}'
+
+# Aquecimento manual
+curl -X POST "http://localhost:5263/microondas/iniciar" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"tempoSegundos": 45, "potencia": 7}'
+
+# Pausar aquecimento
+curl -X POST "http://localhost:5263/microondas/pausar" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Continuar aquecimento
+curl -X POST "http://localhost:5263/microondas/continuar" \
+  -H "Authorization: Bearer $TOKEN"
+```
 
 ---
 
